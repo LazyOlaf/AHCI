@@ -44,9 +44,6 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
       if (_isDetecting) return;
       _isDetecting = true;
 
-      // Process image here if necessary
-      // Skipped conversion logic for brevity (platform-specific)
-
       // Simulated detection result
       await _flutterTts.speak("Detected object ahead");
       if (await Vibrate.canVibrate) Vibrate.vibrate();
@@ -66,11 +63,72 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+
     return Scaffold(
-      appBar: AppBar(title: Text("Object Detection")),
-      body: _cameraController.value.isInitialized
-          ? CameraPreview(_cameraController)
-          : Center(child: CircularProgressIndicator()),
+      appBar: AppBar(
+        title: Text(
+          "Object Recognition",
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 20),
+        ),
+        centerTitle: true,
+        backgroundColor: Color.fromARGB(255, 255, 255, 255),
+        elevation: 0,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(30)),
+        ),
+      ),
+      body: Column(
+        children: [
+          // Camera Preview (50% of vertical space)
+          Expanded(
+            flex: 1,
+            child: SizedBox(
+              width: screenWidth, // Full screen width
+              child: _cameraController.value.isInitialized
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(0),
+                      child: CameraPreview(_cameraController),
+                    )
+                  : Center(child: CircularProgressIndicator()),
+            ),
+          ),
+
+          // Lower Portion for Voice Input
+          Expanded(
+            flex: 1,
+            child: GestureDetector(
+              onTap: () {
+                _flutterTts.speak('Voice input activated');
+              },
+              child: Container(
+                width: screenWidth,
+                color: Colors.transparent, // Transparent background
+                child: Center(
+                  child: Container(
+                    width: screenWidth * 0.2, // 20% of the screen width
+                    height: screenWidth * 0.2, // 20% of the screen width (to keep it circular)
+                    decoration: BoxDecoration(
+                      color: Colors.white, // White background
+                      shape: BoxShape.circle, // Circular shape
+                      border: Border.all(
+                        color: Color.fromARGB(255, 8, 33, 224), // Blue border color
+                        width: 4, // Thickness of the border
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.mic,
+                      color: Color.fromARGB(255, 8, 33, 224), // Blue icon color
+                      size: screenWidth * 0.1, // 10% of the screen width
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
