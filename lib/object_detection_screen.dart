@@ -3,6 +3,7 @@ import 'package:camera/camera.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:google_mlkit_object_detection/google_mlkit_object_detection.dart';
 import 'package:flutter_vibrate/flutter_vibrate.dart';
+import 'widgets/mic_input_widget.dart';
 
 class ObjectDetectionScreen extends StatefulWidget {
   const ObjectDetectionScreen({super.key});
@@ -86,46 +87,20 @@ class _ObjectDetectionScreenState extends State<ObjectDetectionScreen> {
             flex: 1,
             child: SizedBox(
               width: screenWidth, // Full screen width
-              child: _cameraController.value.isInitialized
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(0),
-                      child: CameraPreview(_cameraController),
-                    )
-                  : Center(child: CircularProgressIndicator()),
+              child:
+                  _cameraController.value.isInitialized
+                      ? ClipRRect(
+                        borderRadius: BorderRadius.circular(0),
+                        child: CameraPreview(_cameraController),
+                      )
+                      : Center(child: CircularProgressIndicator()),
             ),
           ),
 
-          // Lower Portion for Voice Input
+          // Reusable Mic Input Widget
           Expanded(
             flex: 1,
-            child: GestureDetector(
-              onTap: () {
-                _flutterTts.speak('Voice input activated');
-              },
-              child: Container(
-                width: screenWidth,
-                color: Colors.transparent, // Transparent background
-                child: Center(
-                  child: Container(
-                    width: screenWidth * 0.2, // 20% of the screen width
-                    height: screenWidth * 0.2, // 20% of the screen width (to keep it circular)
-                    decoration: BoxDecoration(
-                      color: Colors.white, // White background
-                      shape: BoxShape.circle, // Circular shape
-                      border: Border.all(
-                        color: Color.fromARGB(255, 8, 33, 224), // Blue border color
-                        width: 4, // Thickness of the border
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.mic,
-                      color: Color.fromARGB(255, 8, 33, 224), // Blue icon color
-                      size: screenWidth * 0.1, // 10% of the screen width
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            child: MicInputWidget(flutterTts: _flutterTts),
           ),
         ],
       ),
