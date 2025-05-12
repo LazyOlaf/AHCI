@@ -1,35 +1,28 @@
 import 'package:flutter/material.dart';
-//import 'main_screen.dart'; // Your main object detection/navigation screen
+import 'registration_page.dart'; // Import the Registration Page
+import 'main_screen.dart'; // Your main object detection/navigation screen
 import 'widgets/mic_input_widget.dart'; // Import the MicInputWidget
 import 'package:flutter_tts/flutter_tts.dart'; // Import FlutterTts package
-import 'login_page.dart';
 
-class RegistrationPage extends StatefulWidget {
-  const RegistrationPage({super.key});
+class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
 
   @override
-  _RegistrationPageState createState() => _RegistrationPageState();
+  _LoginPageState createState() => _LoginPageState();
 }
 
-class _RegistrationPageState extends State<RegistrationPage> {
+class _LoginPageState extends State<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final flutterTts = FlutterTts(); // Initialize FlutterTts instance
   String name = '';
-  String email = '';
   String password = '';
-  bool _agreeToTerms = false;
 
-  void _register() {
-    if (_formKey.currentState!.validate() && _agreeToTerms) {
+  void _logIn() {
+    if (_formKey.currentState!.validate()) {
       _formKey.currentState!.save();
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (_) => LoginPage()),
-        //MaterialPageRoute(builder: (_) => MainScreen(userName: name)),
-      );
-    } else if (!_agreeToTerms) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('You must agree to the terms and conditions.')),
+        MaterialPageRoute(builder: (_) => MainScreen(userName: name)),
       );
     }
   }
@@ -47,7 +40,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               const Text(
-                'Create Account',
+                'Log In',
                 style: TextStyle(
                   fontSize: 20.0,
                   fontWeight: FontWeight.bold,
@@ -62,7 +55,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
                   borderRadius: BorderRadius.circular(20), // Rounded corners
                 ),
                 child: const Text(
-                  'Create your account to start enhancing your experience.',
+                  'Log in to your account to start enhancing your experience.',
                   style: TextStyle(
                     fontSize: 12.0,
                     color: Colors.black54,
@@ -76,7 +69,7 @@ class _RegistrationPageState extends State<RegistrationPage> {
       ),
       body: Column(
         children: [
-          // Upper 50%: Registration Form
+          // Upper 50%: Log In Form
           Expanded(
             flex: 1,
             child: SingleChildScrollView(
@@ -86,10 +79,10 @@ class _RegistrationPageState extends State<RegistrationPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Full Name Field
+                    // Name Field
                     TextFormField(
                       decoration: InputDecoration(
-                        labelText: 'Full Name',
+                        labelText: 'Name',
                         prefixIcon: const Icon(
                           Icons.person_2_outlined, // User icon
                           size: 18.0, // Adjust the icon size
@@ -105,21 +98,6 @@ class _RegistrationPageState extends State<RegistrationPage> {
                     ),
                     const SizedBox(height: 7),
 
-                    // Email Field
-                    TextFormField(
-                      decoration: InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: const Icon(Icons.email_outlined, size: 18.0,), // Email icon
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(30), // Rounded corners
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 15), // Adjust padding for shorter height
-                      ),
-                      validator: (val) => val!.contains('@') ? null : 'Enter valid email',
-                      onSaved: (val) => email = val!,
-                    ),
-                    const SizedBox(height: 7),
-
                     // Password Field
                     TextFormField(
                       decoration: InputDecoration(
@@ -131,58 +109,38 @@ class _RegistrationPageState extends State<RegistrationPage> {
                         contentPadding: const EdgeInsets.symmetric(horizontal: 15), // Adjust padding for shorter height
                       ),
                       obscureText: true,
-                      validator: (val) => val!.length < 6 ? 'Password too short' : null,
+                      style: const TextStyle(fontSize: 14.0), // Set custom font size
+                      validator: (val) => val!.isEmpty ? 'Enter your password' : null,
                       onSaved: (val) => password = val!,
                     ),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 20),
 
-                    // Terms and Conditions Checkbox
-                    Row(
-                      children: [
-                        Checkbox(
-                          value: _agreeToTerms,
-                          onChanged: (value) {
-                            setState(() {
-                              _agreeToTerms = value!;
-                            });
-                          },
-                        ),
-                        const Expanded(
-                          child: Text(
-                            'I agree with terms and conditions',
-                            style: TextStyle(fontSize: 14.0),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 10),
-
-                    // Register Button
+                    // Log In Button
                     Center(
                       child: ElevatedButton(
-                        onPressed: _register,
+                        onPressed: _logIn,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color.fromARGB(255, 67, 78, 234), // Consistent blue color
                           padding: const EdgeInsets.symmetric(horizontal: 90, vertical: 10),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(5),
                           ),
                         ),
                         child: const Text(
-                          'Register',
+                          'Log In',
                           style: TextStyle(fontSize: 16, color: Colors.white),
                         ),
                       ),
                     ),
                     const SizedBox(height: 10),
 
-                    // Already Registered? Log In
+                    // Not Registered? Register
                     Center(
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           const Text(
-                            'Already registered? ', // Plain text
+                            'Not registered? ', // Plain text
                             style: TextStyle(
                               fontSize: 14.0,
                               color: Colors.black, // Regular black color for plain text
@@ -190,14 +148,14 @@ class _RegistrationPageState extends State<RegistrationPage> {
                           ),
                           GestureDetector(
                             onTap: () {
-                              // Navigate to login page (replace with actual login page)
+                              // Navigate to Registration Page
                               Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (_) => const LoginPage()),
+                                MaterialPageRoute(builder: (_) => const RegistrationPage()),
                               );
                             },
                             child: const Text(
-                              'Log In.', // Link text
+                              'Register.', // Link text
                               style: TextStyle(
                                 fontSize: 14.0,
                                 color: Color.fromARGB(255, 67, 78, 234), // Consistent blue color for link

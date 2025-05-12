@@ -3,6 +3,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'object_detection_screen.dart';
 import 'widgets/mic_input_widget.dart';
+import 'profile_page.dart'; // Import the Profile Page
+import 'navigation_page.dart'; // Import the Navigation Page
 
 class MainScreen extends StatefulWidget {
   final String userName;
@@ -54,7 +56,22 @@ class _MainScreenState extends State<MainScreen> {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return Scaffold(
-      appBar: AppBar(title: Text('Welcome, ${widget.userName}')),
+      appBar: AppBar(
+        automaticallyImplyLeading: false, // Removes the back arrow
+        title: const Text('Home'), // Set the title to "Home"
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.person), // Profile icon
+            onPressed: () {
+              // Navigate to Profile Page
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => ProfilePage(userName: widget.userName)),
+              );
+            },
+          ),
+        ],
+      ),
       body: Column(
         children: [
           // Buttons in the first half
@@ -67,7 +84,12 @@ class _MainScreenState extends State<MainScreen> {
                 children: [
                   // Navigation Button
                   GestureDetector(
-                    onTap: _getCurrentLocation,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const NavigationPage()), // Navigate to Navigation Page
+                      );
+                    },
                     child: Container(
                       width: screenWidth * 0.4,
                       height: 170,
