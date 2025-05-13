@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_application_1/profile_page.dart';
 import 'get_started_page.dart';
 import 'registration_page.dart';
 import 'main_screen.dart';
@@ -21,6 +22,7 @@ class MyApp extends StatelessWidget {
         '/': (context) => const GetStartedPage(),
         '/registration': (context) => const RegistrationPage(),
         '/main_screen': (context) => MainScreen(userName: 'User'), // Example
+        '/profile': (context) => const ProfilePage(userName: 'User'),
       },
     );
   }

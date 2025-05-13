@@ -1,155 +1,189 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_osm_plugin/flutter_osm_plugin.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:geocoding/geocoding.dart'; // Import Geocoding package
+import 'package:http/http.dart' as http;
+import 'widgets/mic_input_widget.dart';
+import 'widgets/header_widget.dart'; // Import the HeaderWidget
 
 class NavigationPage extends StatefulWidget {
   const NavigationPage({super.key});
 
   @override
-  _NavigationPageState createState() => _NavigationPageState();
+  NavigationPageState createState() => NavigationPageState();
 }
 
-class _NavigationPageState extends State<NavigationPage> {
-  final TextEditingController _fromController = TextEditingController();
+class NavigationPageState extends State<NavigationPage> {
   final TextEditingController _toController = TextEditingController();
   final FlutterTts flutterTts = FlutterTts();
-  GoogleMapController? _mapController;
+  final MapController _mapController = MapController();
 
-  LatLng? _fromLocation;
-  LatLng? _toLocation;
-
-  Set<Marker> _markers = {};
-  Polyline? _routePolyline;
+  List<Map<String, dynamic>> _suggestions = [];
 
   @override
   void dispose() {
-    _fromController.dispose();
     _toController.dispose();
     flutterTts.stop();
     super.dispose();
   }
 
-  Future<LatLng?> _getCoordinates(String address) async {
-    try {
-      List<Location> locations = await locationFromAddress(address);
-      if (locations.isNotEmpty) {
-        return LatLng(locations.first.latitude, locations.first.longitude);
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error finding location: $e')),
-      );
+  Future<void> _searchAddress(String query) async {
+    if (query.length < 3) return;
+
+    final uri = Uri.parse("https://nominatim.openstreetmap.org/search?q=$query&format=json&addressdetails=1");
+    final response = await http.get(uri, headers: {'User-Agent': 'Flutter App'});
+
+    if (response.statusCode == 200) {
+      final List<dynamic> data = jsonDecode(response.body);
+      setState(() {
+        _suggestions = data.map<Map<String, dynamic>>((item) => {
+              "display": item["display_name"],
+              "lat": double.parse(item["lat"]),
+              "lon": double.parse(item["lon"]),
+            }).toList();
+      });
     }
-    return null;
   }
 
-  void _showRoute() async {
-    if (_fromController.text.isEmpty || _toController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please enter both From and To locations')),
-      );
-      return;
-    }
+  Future<void> _selectSuggestion(Map<String, dynamic> suggestion) async {
+    final location = GeoPoint(
+      latitude: suggestion["lat"],
+      longitude: suggestion["lon"],
+    );
 
-    LatLng? fromCoordinates = await _getCoordinates(_fromController.text);
-    LatLng? toCoordinates = await _getCoordinates(_toController.text);
+    setState(() {
+      _toController.text = suggestion["display"];
+      _suggestions = [];
+    });
 
-    if (fromCoordinates != null && toCoordinates != null) {
-      setState(() {
-        _fromLocation = fromCoordinates;
-        _toLocation = toCoordinates;
+    await _mapController.goToLocation(location);
+    await _drawRouteTo(location);
+    _speakLocation(suggestion["display"]);
+  }
 
-        _markers = {
-          Marker(markerId: const MarkerId('from'), position: _fromLocation!, infoWindow: const InfoWindow(title: 'From')),
-          Marker(markerId: const MarkerId('to'), position: _toLocation!, infoWindow: const InfoWindow(title: 'To')),
-        };
-
-        _routePolyline = Polyline(
-          polylineId: const PolylineId('route'),
-          points: [_fromLocation!, _toLocation!],
-          color: Colors.blue,
-          width: 5,
-        );
-      });
-
-      // Move the camera to show the route
-      _mapController?.animateCamera(
-        CameraUpdate.newLatLngBounds(
-          LatLngBounds(
-            southwest: LatLng(
-              _fromLocation!.latitude < _toLocation!.latitude ? _fromLocation!.latitude : _toLocation!.latitude,
-              _fromLocation!.longitude < _toLocation!.longitude ? _fromLocation!.longitude : _toLocation!.longitude,
-            ),
-            northeast: LatLng(
-              _fromLocation!.latitude > _toLocation!.latitude ? _fromLocation!.latitude : _toLocation!.latitude,
-              _fromLocation!.longitude > _toLocation!.longitude ? _fromLocation!.longitude : _toLocation!.longitude,
-            ),
-          ),
-          50.0,
+  Future<void> _drawRouteTo(GeoPoint destination) async {
+    try {
+      GeoPoint currentLocation = await _mapController.myLocation();
+      await _mapController.drawRoad(
+        currentLocation,
+        destination,
+        roadType: RoadType.car,
+        roadOption: RoadOption(
+          roadWidth: 10,
+          roadColor: Colors.blue,
         ),
       );
-
-      // Simulate verbal route description
-      _speakRoute('Starting from ${_fromController.text}, head towards ${_toController.text}.');
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Failed to draw route: $e")),
+      );
     }
   }
 
-  void _speakRoute(String routeDescription) async {
-    await flutterTts.speak(routeDescription);
+  void _speakLocation(String address) async {
+    if (address.isNotEmpty) {
+      await flutterTts.speak('Your destination is $address');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Navigation'),
-      ),
       body: Column(
         children: [
-          // Input Fields for "From" and "To" Locations
-          Padding(
-            padding: const EdgeInsets.all(16.0),
+          // Use HeaderWidget instead of AppBar
+          HeaderWidget(
+            title: 'Navigation',
+            onBackPressed: () {
+              Navigator.of(context).pop();
+            },
+            onHomePressed: () {
+              Navigator.of(context).pushNamed('/home');
+            },
+            onProfilePressed: () {
+              Navigator.of(context).pushNamed('/profile');
+            },
+          ),
+          Expanded(
+            flex: 1,
             child: Column(
               children: [
-                TextField(
-                  controller: _fromController,
-                  decoration: const InputDecoration(
-                    labelText: 'From',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.location_on),
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Column(
+                    children: [
+                      TextField(
+                        controller: _toController,
+                        decoration: const InputDecoration(
+                          labelText: 'Enter Destination',
+                          border: OutlineInputBorder(),
+                          prefixIcon: Icon(Icons.location_on),
+                        ),
+                        onChanged: _searchAddress,
+                      ),
+                      if (_suggestions.isNotEmpty)
+                        Container(
+                          height: 150,
+                          margin: const EdgeInsets.only(top: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(color: Colors.grey),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: ListView.builder(
+                            itemCount: _suggestions.length,
+                            itemBuilder: (context, index) {
+                              final suggestion = _suggestions[index];
+                              return ListTile(
+                                title: Text(suggestion["display"]),
+                                onTap: () => _selectSuggestion(suggestion),
+                              );
+                            },
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 10),
-                TextField(
-                  controller: _toController,
-                  decoration: const InputDecoration(
-                    labelText: 'To',
-                    border: OutlineInputBorder(),
-                    prefixIcon: Icon(Icons.location_on),
+                Expanded(
+                  child: OSMFlutter(
+                    controller: _mapController,
+                    trackMyPosition: true,
+                    initZoom: 8,
+                    minZoomLevel: 3,
+                    maxZoomLevel: 19,
+                    userLocationMarker: UserLocationMaker(
+                      personMarker: MarkerIcon(
+                        icon: Icon(
+                          Icons.location_history_rounded,
+                          color: Colors.red,
+                          size: 48,
+                        ),
+                      ),
+                      directionArrowMarker: MarkerIcon(
+                        icon: Icon(
+                          Icons.double_arrow,
+                          size: 48,
+                        ),
+                      ),
+                    ),
+                    markerOption: MarkerOption(
+                      defaultMarker: MarkerIcon(
+                        icon: Icon(
+                          Icons.person_pin_circle,
+                          color: Colors.blue,
+                          size: 56,
+                        ),
+                      ),
+                    ),
                   ),
-                ),
-                const SizedBox(height: 10),
-                ElevatedButton(
-                  onPressed: _showRoute,
-                  child: const Text('Show Route'),
                 ),
               ],
             ),
           ),
-
-          // Google Map
           Expanded(
-            child: GoogleMap(
-              initialCameraPosition: const CameraPosition(
-                target: LatLng(37.7749, -122.4194), // Default: San Francisco
-                zoom: 6.0,
-              ),
-              markers: _markers,
-              polylines: _routePolyline != null ? {_routePolyline!} : {},
-              onMapCreated: (controller) {
-                _mapController = controller;
-              },
+            flex: 1,
+            child: MicInputWidget(
+              flutterTts: flutterTts,
             ),
           ),
         ],

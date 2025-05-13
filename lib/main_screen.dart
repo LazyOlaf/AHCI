@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:geolocator/geolocator.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'object_detection_screen.dart';
 import 'widgets/mic_input_widget.dart';
@@ -12,38 +11,11 @@ class MainScreen extends StatefulWidget {
   const MainScreen({super.key, required this.userName});
 
   @override
-  _MainScreenState createState() => _MainScreenState();
+  MainScreenState createState() => MainScreenState();
 }
 
-class _MainScreenState extends State<MainScreen> {
-  Position? _currentPosition;
+class MainScreenState extends State<MainScreen> {
   final FlutterTts flutterTts = FlutterTts();
-
-  void _getCurrentLocation() async {
-    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-    if (!serviceEnabled) {
-      await Geolocator.openLocationSettings();
-      return;
-    }
-
-    LocationPermission permission = await Geolocator.checkPermission();
-    if (permission == LocationPermission.denied) {
-      permission = await Geolocator.requestPermission();
-      if (permission == LocationPermission.denied) return;
-    }
-
-    _currentPosition = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
-    setState(() {});
-    _speakLocation();
-  }
-
-  void _speakLocation() async {
-    if (_currentPosition != null) {
-      await flutterTts.speak(
-        'Your current location is latitude ${_currentPosition!.latitude}, longitude ${_currentPosition!.longitude}',
-      );
-    }
-  }
 
   @override
   void dispose() {
