@@ -7,12 +7,12 @@ class HeaderWidget extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback onProfilePressed;
 
   const HeaderWidget({
-    Key? key,
+    super.key,
     required this.title,
     required this.onBackPressed,
     required this.onHomePressed,
     required this.onProfilePressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

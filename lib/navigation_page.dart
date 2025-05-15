@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_osm_plugin/flutter_osm_plugin.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:http/http.dart' as http;
+import 'package:permission_handler/permission_handler.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import 'widgets/mic_input_widget.dart';
 import 'widgets/header_widget.dart'; // Import the HeaderWidget
 
@@ -19,6 +21,31 @@ class NavigationPageState extends State<NavigationPage> {
   final MapController _mapController = MapController();
 
   List<Map<String, dynamic>> _suggestions = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _requestPermissions();
+    _checkConnectivity();
+  }
+
+  Future<void> _requestPermissions() async {
+    final status = await Permission.location.request();
+    if (!status.isGranted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Location permission is required to use the map.')),
+      );
+    }
+  }
+
+  Future<void> _checkConnectivity() async {
+    final connectivityResult = await Connectivity().checkConnectivity();
+    if (connectivityResult == ConnectivityResult.none) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('No internet connection. Please connect to the internet.')),
+      );
+    }
+  }
 
   @override
   void dispose() {

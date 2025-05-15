@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Flutter Web Object Detection</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.10.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/coco-ssd"></script>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: black;
+    }
+
+    #webcam, #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+  </style>
+</head>
+<body>
+  <video id="webcam" autoplay muted></video>
+  <canvas id="canvas"></canvas>
+
+  <script>
+    let model, webcamElement, canvas, ctx;
+    let walkMode = false;
+
+    async function init() {
+      model = await cocoSsd.load();
+      webcamElement = document.getElementById('webcam');
+      canvas = document.getElementById('canvas');
+      ctx = canvas.getContext('2d');
+
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          webcamElement.srcObject = stream;
+          webcamElement.onloadedmetadata = () => detectFrame();
+        });
+
+      setupVoiceCommands();
+    }
+
+    async function detectFrame() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      const predictions = await model.detect(webcamElement);
+      drawPredictions(predictions);
+
+      if (walkMode) {
+        for (let p of predictions) {
+          if (p.score > 0.6) speak(`Detected ${p.class}`);
+        }
+      }
+
+      requestAnimationFrame(detectFrame);
+    }
+
+    function drawPredictions(predictions) {
+      for (let p of predictions) {
+        if (p.score > 0.5) {
+          ctx.strokeStyle = '#00FFFF';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(...p.bbox);
+          ctx.fillStyle = '#00FFFF';
+          ctx.font = '16px Arial';
+          ctx.fillText(`${p.class} (${Math.round(p.score * 100)}%)`, p.bbox[0], p.bbox[1] > 10 ? p.bbox[1] - 5 : 10);
+        }
+      }
+    }
+
+    function processCommand(cmd) {
+      if (cmd.includes("what")) {
+        walkMode = false;
+        model.detect(webcamElement).then(predictions => {
+          if (predictions.length > 0) {
+            speak(`I see ${predictions[0].class}`);
+          } else {
+            speak("I don't see anything");
+          }
+        });
+      } else if (cmd.includes("walk")) {
+        walkMode = true;
+        speak("Okay, I'm walking with you");
+      } else if (cmd.includes("stop")) {
+        walkMode = false;
+        speak("Okay, I stopped walking");
+      }
+    }
+
+    function speak(text) {
+      const utterance = new SpeechSynthesisUtterance(text);
+      speechSynthesis.speak(utterance);
+    }
+
+    function setupVoiceCommands() {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        console.warn("Speech recognition not supported in this browser.");
+        return;
+      }
+
+      const recognition = new SpeechRecognition();
+      recognition.continuous = true;
+      recognition.lang = 'en-US';
+
+      recognition.onresult = (event) => {
+        const lastResult = event.results[event.results.length - 1];
+        const command = lastResult[0].transcript.trim().toLowerCase();
+        console.log("Voice Command:", command);
+        processCommand(command);
+      };
+
+      recognition.onerror = (event) => {
+        console.error("Speech recognition error", event.error);
+      };
+
+      recognition.onend = () => {
+        // Restart to keep listening
+        recognition.start();
+      };
+
+      recognition.start();
+    }
+
+    init();
+  </script>
+</body>
+</html>

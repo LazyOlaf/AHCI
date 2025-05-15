@@ -1,65 +1,117 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'dart:html' as html;
 
-class MicInputWidget extends StatelessWidget {
+class MicInputWidget extends StatefulWidget {
   final FlutterTts flutterTts;
 
-  const MicInputWidget({Key? key, required this.flutterTts}) : super(key: key);
+  const MicInputWidget({super.key, required this.flutterTts});
+
+  @override
+  State<MicInputWidget> createState() => _MicInputWidgetState();
+}
+
+class _MicInputWidgetState extends State<MicInputWidget> {
+  late stt.SpeechToText _speech;
+  bool _isListening = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _speech = stt.SpeechToText();
+  }
+
+  Future<void> _startListening() async {
+    bool available = await _speech.initialize();
+
+    if (available) {
+      setState(() => _isListening = true);
+      widget.flutterTts.speak('Listening');
+
+      _speech.listen(
+        onResult: (result) async {
+          String command = result.recognizedWords.toLowerCase();
+          print("Heard: $command");
+
+          if (command.contains('what')) {
+            _sendCommandToWeb('what');
+            await widget.flutterTts.speak('Describing what I see');
+          } else if (command.contains('walk')) {
+            _sendCommandToWeb('walk');
+            await widget.flutterTts.speak('Entering walk mode');
+          } else {
+            await widget.flutterTts.speak('Sorry, I did not understand');
+          }
+
+          _speech.stop();
+          setState(() => _isListening = false);
+        },
+        listenFor: Duration(seconds: 5),
+        pauseFor: Duration(seconds: 3),
+        localeId: 'en_US',
+        cancelOnError: true,
+        partialResults: false,
+      );
+    } else {
+      await widget.flutterTts.speak('Speech recognition not available');
+    }
+  }
+
+  void _sendCommandToWeb(String command) {
+    html.window.postMessage({'command': command}, '*');
+  }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
 
     return GestureDetector(
-      onTap: () {
-        flutterTts.speak('Voice input activated');
-      },
+      onTap: _isListening ? null : _startListening,
       child: Container(
         width: screenWidth,
-        color: Colors.transparent, // Transparent background
+        color: Colors.transparent,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Mic Button with Double Border
             Container(
-              width: screenWidth * 0.45, // 25% of the screen width
-              height: screenWidth * 0.45, // 25% of the screen width (to keep it circular)
+              width: screenWidth * 0.45,
+              height: screenWidth * 0.45,
               decoration: BoxDecoration(
-                color: Colors.white, // White background
-                shape: BoxShape.circle, // Circular shape
+                color: Colors.white,
+                shape: BoxShape.circle,
                 border: Border.all(
-                  color: Color.fromARGB(128, 100, 123, 255), // Blue inner border color
-                  width: 5, // Thickness of the inner border
+                  color: Color.fromARGB(128, 100, 123, 255),
+                  width: 5,
                 ),
               ),
               child: Padding(
-                padding: EdgeInsets.all(6), // Gap between the two borders
+                padding: EdgeInsets.all(6),
                 child: Container(
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle, // Circular shape
+                    shape: BoxShape.circle,
                     border: Border.all(
-                      color: Color.fromARGB(255, 100, 123, 255), // Blue outer border color
-                      width: 4, // Thickness of the outer border
+                      color: Color.fromARGB(255, 100, 123, 255),
+                      width: 4,
                     ),
                   ),
                   child: Center(
                     child: Icon(
-                      Icons.mic,
-                      color: Color.fromARGB(255, 100, 123, 255), // Blue icon color
-                      size: screenWidth * 0.20, // 12% of the screen width
+                      _isListening ? Icons.hearing : Icons.mic,
+                      color: Color.fromARGB(255, 100, 123, 255),
+                      size: screenWidth * 0.20,
                     ),
                   ),
                 ),
               ),
             ),
-            // Label Below the Mic Button
-            SizedBox(height: 10), // Spacing between the mic button and the label
+            SizedBox(height: 10),
             Text(
-              "Tap & Speak",
+              _isListening ? "Listening..." : "Tap & Speak",
               style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
-                color: Color.fromARGB(255, 67, 78, 234), // Blue text color
+                color: Color.fromARGB(255, 67, 78, 234),
               ),
             ),
           ],

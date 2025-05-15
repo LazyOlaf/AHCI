@@ -5,9 +5,15 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Camera access is needed for object detection</string>
+	<string>We need access to the camera for object detection.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>We need access to the microphone for speech recognition.</string>
+	<key>NSVibrationUsageDescription</key>
+	<string>We need vibration access for feedback.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Location is needed for navigation</string>
+	<key>NSFaceIDUsageDescription</key>
+	<string>We use Face ID to authenticate you.</string>
 	<key>CFBundleDisplayName</key>
 	<string>Flutter Application 1</string>
 	<key>CFBundleExecutable</key>
